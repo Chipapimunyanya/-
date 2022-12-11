@@ -12,35 +12,38 @@ var (
 )
 
 type Cache struct {
-	mx *sync.Mutex
 	ch []int64
+	mx *sync.Mutex
 }
 
 func main() {
-	var wg = sync.WaitGroup{}
+	var wg sync.WaitGroup = sync.WaitGroup{}
+	var mu sync.Mutex = sync.Mutex{}
 
 	ch := Cache{
 		ch: []int64{},
 	}
 
-	wg.Add(int(numOfGo))
-
 	for i := int64(0); i < numOfGo; i++ {
-		go writer(&ch, &wg)
+		wg.Add(1)
+		go writer(&ch, &wg, &mu)
 	}
+
 	wg.Wait()
 	fmt.Println("Должно быть записано:", numOfNotes*numOfGo, "значений")
 	fmt.Println("В итоге записано", len(ch.ch), "значений")
 }
-func (ch *Cache) Add() {
-	ch.mx.Lock()
-	defer ch.mx.Unlock()
-	ch.ch = append(ch.ch, int64(numOfGo))
+
+func (c *Cache) Add(data int) {
+	c.ch = append(c.ch, int64(data))
 }
-func writer(ch *Cache, wg *sync.WaitGroup) {
+
+func writer(ch *Cache, wg *sync.WaitGroup, mu *sync.Mutex) {
 	defer wg.Done()
 	for i := int64(0); i < numOfNotes; i++ {
 		n := rand.Intn(500000)
-		ch.ch = append(ch.ch, int64(n))
+		mu.Lock()
+		ch.Add(n)
+		mu.Unlock()
 	}
 }
