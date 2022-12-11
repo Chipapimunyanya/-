@@ -1,0 +1,50 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/labstack/echo/v4"
+	"io"
+	"log"
+)
+
+type Note struct {
+	Name string `json:"name"`
+	Ln   string `json:"ln"`
+	Text string `json:"text"`
+}
+
+func main() {
+	e := echo.New()
+	e.GET("/hello", GetHello)
+	e.POST("/save", SaveNote)
+	e.Logger.Fatal(e.Start("127.0.0.1:4000"))
+}
+func GetHello(c echo.Context) error {
+	name := c.QueryParam("name")
+	ln := c.QueryParam("ln")
+	return c.String(200, "Привет, "+name+ln)
+}
+func SaveNote(c echo.Context) error {
+	body, err := io.ReadAll(c.Request().Body)
+	if err != nil {
+		log.Println(err)
+		return c.NoContent(500)
+	}
+	n := Note{}
+	err = json.Unmarshal(body, &n)
+	if err != nil {
+		log.Println(err)
+		return c.NoContent(500)
+	}
+	fmt.Println("Имя:", n.Name)
+	fmt.Println("Фамилия:", n.Ln)
+	fmt.Println("Заметка:", n.Text)
+
+	js, err := json.Marshal(n)
+	if err != nil {
+		log.Println(err)
+		return c.NoContent(500)
+	}
+	return c.JSON(200, json.RawMessage(js))
+}
