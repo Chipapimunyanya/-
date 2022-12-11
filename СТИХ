@@ -1,0 +1,69 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"time"
+)
+
+func main() {
+	text := "Two roads diverged in a yellow wood,\nAnd sorry I could not travel both\nAnd be one traveler, long I stood\nAnd looked down one as far as I could\nTo where it bent in the undergrowth."
+
+	file, err := os.Create("стих.txt")
+	if err != nil {
+		fmt.Printf("Ошибка создания[%s]", err.Error())
+		return
+	}
+	writeString, err := file.WriteString(text)
+	if err != nil {
+		fmt.Printf("Ошибка записи[%s]", err.Error())
+		return
+	}
+
+	println(writeString)
+	file, err = os.Open("стих.txt")
+	if err != nil {
+		fmt.Printf("Ошибка открытия[%s]", err.Error())
+		return
+	}
+	go slice()
+	//defer remove()
+	scan := bufio.NewScanner(file)
+
+	for scan.Scan() {
+		time.Sleep(1 * time.Second)
+		fmt.Println(scan.Text())
+	}
+	if err := scan.Err(); err != nil {
+		fmt.Printf("Ошибка сканирования[%s]", err.Error())
+		return
+	}
+	var b string
+	fmt.Println("Редактировать")
+	fmt.Scan(&b)
+
+	for b == "да" {
+		fmt.Scan(&b)
+		fmt.Println(text, "\n"+b)
+	}
+	for b == "нет" {
+		fmt.Println("Запись закончена")
+		return
+	}
+}
+func slice() {
+	text := "An enameled vessel, \na window, a nightstand, a bed, \nlife is hard and uncomfortable, \nbut it's cozy to die."
+	for i := 0; i < len(text); i++ {
+		fmt.Println(string(text[i]))
+	}
+}
+
+/*func remove() {
+	err := os.Remove("стих.txt")
+	if err != nil {
+		fmt.Printf("Не получается удалить[%s]", err.Error())
+		return
+	}
+}
+*/
