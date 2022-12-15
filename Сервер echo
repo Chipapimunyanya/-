@@ -1,0 +1,77 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+)
+
+type Note struct {
+	Name string `json:"name"`
+	Ln   string `json:"ln"`
+	Text string `json:"text"`
+}
+
+var NoteS []Note
+
+func main() {
+	http.HandleFunc("/hello", GetHello)
+	http.HandleFunc("/save", SaveNote)
+	http.HandleFunc("/note", List)
+	log.Fatal(http.ListenAndServe("127.0.0.1:4000", nil))
+}
+
+func GetHello(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "err", http.StatusMethodNotAllowed)
+		return
+	}
+
+	fmt.Fprintf(w, "Привет")
+}
+
+func SaveNote(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "err", http.StatusMethodNotAllowed)
+		return
+	}
+
+	n := Note{}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "err", http.StatusBadRequest)
+		return
+	}
+
+	err = json.Unmarshal(body, &n)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "err", http.StatusBadRequest)
+		return
+	}
+
+	NoteS = append(NoteS, n)
+	fmt.Fprintf(w, "Имя: %s\n", n.Name)
+	fmt.Fprintf(w, "Фамилия: %s\n", n.Ln)
+	fmt.Fprintf(w, "Заметка: %s\n", n.Text)
+}
+
+func List(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "err", http.StatusMethodNotAllowed)
+		return
+	}
+
+	js, err := json.Marshal(NoteS)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "err", 500)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
+}
