@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/labstack/echo/v4"
 	"io"
 	"log"
 	"net/http"
@@ -17,61 +18,42 @@ type Note struct {
 var NoteS []Note
 
 func main() {
-	http.HandleFunc("/hello", GetHello)
-	http.HandleFunc("/save", SaveNote)
-	http.HandleFunc("/note", List)
-	log.Fatal(http.ListenAndServe("127.0.0.1:4000", nil))
+	e := echo.New()
+	e.GET("/hello", GetHello)
+	e.POST("/save", SaveNote)
+	e.GET("/note", List)
+	e.Logger.Fatal(e.Start("127.0.0.1:4000"))
 }
-
-func GetHello(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "err", http.StatusMethodNotAllowed)
-		return
-	}
-
-	fmt.Fprintf(w, "Привет")
+func GetHello(c echo.Context) error {
+	name := c.QueryParam("name")
+	ln := c.QueryParam("ln")
+	return c.String(200, "Привет, "+"Абоба "+name+"бобер"+ln)
 }
-
-func SaveNote(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "err", http.StatusMethodNotAllowed)
-		return
-	}
-
-	n := Note{}
-	body, err := io.ReadAll(r.Body)
+func SaveNote(c echo.Context) error {
+	body, err := io.ReadAll(c.Request().Body)
 	if err != nil {
-		fmt.Println(err)
-		http.Error(w, "err", http.StatusBadRequest)
-		return
+		log.Println(err)
+		return c.NoContent(500)
 	}
-
+	n := Note{}
 	err = json.Unmarshal(body, &n)
 	if err != nil {
-		fmt.Println(err)
-		http.Error(w, "err", http.StatusBadRequest)
-		return
+		log.Println(err)
+		return c.NoContent(500)
 	}
-
 	NoteS = append(NoteS, n)
-	fmt.Fprintf(w, "Имя: %s\n", n.Name)
-	fmt.Fprintf(w, "Фамилия: %s\n", n.Ln)
-	fmt.Fprintf(w, "Заметка: %s\n", n.Text)
+	fmt.Println("Имя:", n.Name)
+	fmt.Println("Фамилия:", n.Ln)
+	fmt.Println("Заметка:", n.Text)
+
+	return c.String(http.StatusOK, "OK")
 }
 
-func List(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "err", http.StatusMethodNotAllowed)
-		return
-	}
-
+func List(c echo.Context) error {
 	js, err := json.Marshal(NoteS)
 	if err != nil {
-		fmt.Println(err)
-		http.Error(w, "err", 500)
-		return
+		log.Println(err)
+		return c.NoContent(500)
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(js)
+	return c.JSON(http.StatusOK, json.RawMessage(js))
 }
